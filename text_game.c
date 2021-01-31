@@ -50,27 +50,19 @@ char MonsterH[3];
 char MonsterL[1];  
 char MonsterD[3];
 //---------Global Player Stats--------------
-int Health;
-int Damage;
-int level = 1;
+int P_Health;
+int P_Damage;
+int P_level;
+int P_Run;
+char PlayerH[3];
+char PlayerL[1];
+char PlayerD[3];
+char PlayerR[1];
+int attack;
 
-
-
-void Wepon_Selection()
-{
-  ppu_off();
-  vram_adr(NAMETABLE_A);
-  vram_fill(0,1024);
-  // I AM THE GREATEST
-  vram_adr(NTADR_A(5,10));
-  vram_write("weapons", 7);
-
-  ppu_on_all(); 
-
-}
 void Monster_Maker()
 {
-  M_Name = (rand()%11) + 1;
+  M_Name = (rand()%11);
   M_Type = (rand()%3);
   
   M_level = (rand()%10);
@@ -82,8 +74,19 @@ void Monster_Maker()
     M_Health = 999;
   sprintf(MonsterH,"%d",M_Health);
   sprintf(MonsterL,"%d",M_level);
-  sprintf(MonsterD,"%d",M_Damage);
-  
+  sprintf(MonsterD,"%d",M_Damage);  
+}
+void Player_Maker()
+{  
+  P_Damage = 50;
+  P_Health = 100;
+  P_level = 1;
+  P_Run = 3;
+  points = 0;
+  sprintf(PlayerH,"%d",P_Health);
+  sprintf(PlayerL,"%d",P_level);
+  sprintf(PlayerD,"%d",P_Damage); 
+  sprintf(PlayerR,"%d",P_Run);  
 }
 void Monster_Output()
 {
@@ -102,40 +105,26 @@ void Monster_Output()
   vram_adr(NTADR_A(4,2));
   vram_write("Level:", 6);
   
-  vram_adr(NTADR_A(10,2));
-  vram_write(MonsterL, 1);
-  
   vram_adr(NTADR_A(4,6));
   vram_write("Health:", 7);
-
-  vram_adr(NTADR_A(11,6));
-  vram_write(MonsterH, 3);
   
   vram_adr(NTADR_A(4,8));
   vram_write("Damage:", 7);
+  
 
   vram_adr(NTADR_A(11,8));
   vram_write(MonsterD, 3);
+  
+  vram_adr(NTADR_A(10,2));
+  vram_write(MonsterL, 1);
+  
+  vram_adr(NTADR_A(11,6));
+  vram_write(MonsterH, 3);
 
   //ppu_on_all();
 }
 void Player()
 {
-  char MonsterH[3];
-  char MonsterL[1];  
-  char MonsterD[3];
-  int num = (rand()%11) + 1;
-  int num1 = (rand()%3+1);
-  M_level = (rand()%10);
-  M_Damage = (num1+1) * (M_level + 1) * 10;
-  if (M_level < 9)
-    M_Health = 100 * (M_level + 1);
-  else
-    M_Health = 999;
-  sprintf(MonsterH,"%d",M_Health);
-  sprintf(MonsterL,"%d",M_level);
-  sprintf(MonsterD,"%d",M_Damage);
-
 
   vram_adr(NTADR_A(15,16));
   vram_write("Player", 6);
@@ -144,19 +133,19 @@ void Player()
   vram_write("Level:", 6);
   
   vram_adr(NTADR_A(21,18));
-  vram_write(MonsterL, 1);
+  vram_write(PlayerL, 1);
   
   vram_adr(NTADR_A(4,20));
   vram_write("Health:", 7);
 
   vram_adr(NTADR_A(12,20));
-  vram_write(MonsterH, 3);
+  vram_write(PlayerH, 3);
   
   vram_adr(NTADR_A(4,22));
   vram_write("Damage:", 7);
 
   vram_adr(NTADR_A(12,22));
-  vram_write(MonsterD, 3);
+  vram_write(PlayerD, 3);
     
   vram_adr(NTADR_A(22,20));
   vram_write("Attack", 6);
@@ -165,28 +154,25 @@ void Player()
   vram_write("Run", 3);
   
   vram_adr(NTADR_A(26,22));
-  vram_write(MonsterD, 1);
+  vram_write(PlayerR, 1);
 
       
 }
 void Battal()
 {
-   int M_Roll = (rand()%6);
-   int P_Roll = (rand()%6);
+   int M_Roll = (rand()%6) + (M_level - 3);
+   int P_Roll = (rand()%6) + P_level;
    if(M_Roll > P_Roll)
    {
-     vram_adr(NTADR_A(9,12)); 
-     vram_write("You Lost the Roll!", 18);
+     attack = -1;
    }
    else if(M_Roll < P_Roll)
    {
-     vram_adr(NTADR_A(9,12)); 
-     vram_write("You Won the Roll!", 17);
+     attack = 1;
    }
    else
    {
-     vram_adr(NTADR_A(12,12)); 
-     vram_write("Tie!", 3);
+     attack = 0;
    }
 }
 void Game_World()
@@ -201,34 +187,134 @@ void Game_World()
   ppu_on_all(); 
 }
 
-void gamestate()
+
+
+void gamestate1()
 {
-    char pad1;
-  
-    int state = 0;
-    while(1) 
-    {
-      pad1 = pad_trigger(0);
-    if(pad1 & PAD_START)
-    {
-      Monster_Maker();
-      state =  state + 1;
-    }
-    else if(pad1 & state == 1)
-    {
-        ppu_off();
-  	Monster_Output();
-  	Player();
-        Battal();
-  	ppu_on_all();
-      state = state - 1;
-    }
+  int k;
+  byte joy = pad_poll(0);
+  // move left/right?
+  if(M_Health <= 0)
+  {   
+    ppu_off();
+    points = points + 1;
+    P_Health = 100;
+    if(points <= 2)
+      P_level = P_level;
+    else if (points <= 4)
+      P_level = 2;
+    else if (points <= 8)
+      P_level = 3;
+    else if (points <= 16)
+      P_level = 4;
+    else if (points <= 32)
+      P_level = 5;
+    else if (points <= 64)
+      P_level = 6;
+    else if (points <= 128)
+      P_level = 7;
+    else if (points <= 256)
+      P_level = 8;
+    else if (points <= 512)
+      P_level = 9;
+    P_Damage = P_Damage;
+    if(P_Run <3)
+      P_Run = P_Run + 1;
+    
+    sprintf(PlayerH,"%d",P_Health);
+    sprintf(PlayerL,"%d",P_level);
+    sprintf(PlayerD,"%d",P_Damage);
+    sprintf(PlayerR,"%d",P_Run);      
+    Monster_Maker();
+    Monster_Output();
+    Player();    
+    ppu_on_all();
   }
+  else if(k == 5 & attack == 1) 
+  {
+    ppu_off();
+    
+    M_Health = (M_Health - P_Damage);
+    
+    M_level = M_level;
+    M_Damage = M_Damage;
+    sprintf(MonsterH,"%d",M_Health);
+    sprintf(MonsterL,"%d",M_level);
+    sprintf(MonsterD,"%d",M_Damage);
+    Monster_Output();
+    Player();    
+    ppu_on_all(); 
+    k = 0;
+  }
+  else if(k == 5 & attack == -1) 
+  {
+    ppu_off();
+    
+    P_Health = (P_Health - M_Damage);
+    
+    P_level = P_level;
+    P_Damage = P_Damage;
+    sprintf(PlayerH,"%d",P_Health);
+    sprintf(PlayerL,"%d",P_level);
+    sprintf(PlayerD,"%d",P_Damage);
+    Monster_Output();
+    Player();
+    
+    ppu_on_all(); 
+    k = 0;
+  }
+  if (joy & PAD_LEFT) {k=5;attack = 1;}
+        	
+  if (joy & PAD_RIGHT) {};  
+  if (joy & PAD_UP) ;
+  if (joy & PAD_DOWN) ;
+  // shoot missile?
+  if (joy & PAD_A)
+    if( joy & PAD_START)
+      if (P_Run > 0)
+      {
+        ppu_off();
+        Monster_Maker();
+        Monster_Output();
+        P_Health = 100;
+        P_Damage = P_Damage;
+        P_level = P_level;
+        P_Run = P_Run - 1;
+        sprintf(PlayerH,"%d",P_Health);
+        sprintf(PlayerL,"%d",P_level);
+        sprintf(PlayerD,"%d",P_Damage);
+        sprintf(PlayerR,"%d",P_Run);
+        Player();
+        ppu_on_all();
+      }
+
+}
+
+
+void Start()
+{
+  ppu_off();
+  vram_adr(NTADR_A(8,10));
+  vram_write("Survive Luck Island", 19);
+  
+  vram_adr(NTADR_A(8,18));
+  vram_write("[Space] to start!", 17);
+  ppu_on_all();
+}
+
+void Screen()
+{
+  ppu_off();
+  Monster_Maker();
+  Monster_Output();
+  Player_Maker();
+  Player();
+  ppu_on_all();
 }
 void main(void)
 {
-   
-  int state = 0;
+  char pad; 
+  int inum = 0;
   // set palette colors
   pal_col(0,0x02);	// set screen to dark blue
   pal_col(1,0x14);	// fuchsia
@@ -236,17 +322,16 @@ void main(void)
   pal_col(3,0x30);	// white
 
  
-
-  ppu_off();
-  Monster_Maker();
-  Monster_Output();
-  Player();
-  Battal();
-  ppu_on_all();
-  // infinite loop
   while(1) 
   {
-    gamestate();
+    pad = pad_trigger(0);
+    if(inum == 0)
+    {Start();inum=1;}
+    if(pad & inum == 1)
+    {Screen();inum = 2;}
+    // infinite loop
+    else if(inum == 2)
+      gamestate1();
   }
 }
 
