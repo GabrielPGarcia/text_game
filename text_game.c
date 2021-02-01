@@ -63,15 +63,17 @@ char PlayerP[4];
 //-------------------Set Monster----------
 void Monster_Maker()
 {
-  M_level = (rand()%10);	//pick random level 
+  int iRand = (rand()%10);	//pick random level 
   M_Type = (rand()%3);		//pick random type   
   M_Name = (rand()%11);		//pick random name
-  M_Damage = 10 * M_level + M_Name;//set Monster's Damage
-  			//set Monster's Health if lvl 9 set Health to 999
-  if (M_level < 9)
-    M_Health = 100 * (M_level + 1);
+  
+  if(iRand > 5 & P_level <= 5)
+    M_level = (iRand - 3);
   else
-    M_Health = 999;
+    M_level = iRand ;
+  
+  M_Health = 100 * (iRand + M_Type);
+  M_Damage = 12 + (M_level + iRand * 10 );
   //--------------------set int to string----
   sprintf(MonsterL,"%d",M_level);
   sprintf(MonsterH,"%d",M_Health); 
@@ -173,59 +175,6 @@ void clearScreen()
 {  
   vram_adr(NAMETABLE_A);
   vram_fill(0,1024);
-  
-  vram_adr(NTADR_A(4,4));
-  vram_write("          ", 10);
-  
-  vram_adr(NTADR_A(14,4));
-  vram_write("          ", 10);
-  
-  vram_adr(NTADR_A(4,2));
-  vram_write("      ", 6);
-  
-  vram_adr(NTADR_A(10,2));
-  vram_write(" ", 1);
-  
-  vram_adr(NTADR_A(4,6));
-  vram_write("      ", 7);
-  
-  vram_adr(NTADR_A(11,6));
-  vram_write("   ", 3);
-  
-  vram_adr(NTADR_A(4,8));
-  vram_write("       :", 7);  
-
-  vram_adr(NTADR_A(11,8));
-  vram_write("   ", 3);
-  vram_adr(NTADR_A(15,16));
-  vram_write("      ", 6);
-  
-  vram_adr(NTADR_A(15,18));
-  vram_write("      ", 6);
-  
-  vram_adr(NTADR_A(21,18));
-  vram_write(" ", 1);
-  
-  vram_adr(NTADR_A(4,20));
-  vram_write("       ", 7);
-
-  vram_adr(NTADR_A(12,20));
-  vram_write("   ", 3);
-  
-  vram_adr(NTADR_A(4,22));
-  vram_write("       ", 7);
-
-  vram_adr(NTADR_A(12,22));
-  vram_write("   ", 3);
-    
-  vram_adr(NTADR_A(22,20));
-  vram_write("      ", 6);
-  
-  vram_adr(NTADR_A(22,22));
-  vram_write("   ", 3);
-  
-  vram_adr(NTADR_A(26,22));
-  vram_write(" ", 1);      
 }
 
 //-----------------Title Screen--------------
@@ -254,9 +203,9 @@ void vBattle()
 {
   int M_Roll;
   int P_Roll;
-  if(P_level >= M_level)
+  if(P_level > 5)
   {
-    M_Roll = (rand()%6) + (M_level);	//random roll for Monster
+    M_Roll = (rand()%6) + M_level;	//random roll for Monster
     P_Roll = (rand()%6) + P_level;	//random roll for Player
   }  
   else
@@ -282,9 +231,9 @@ void vBattle()
 void vBuild()
 {
   ppu_off();
+  Player_Maker();
   Monster_Maker();
   Monster_Output();
-  Player_Maker();
   Player();
   ppu_on_all();
 }
@@ -299,21 +248,21 @@ void vGameState()
     if(P_Run != 9)
       P_Run = P_Run + 1; // add points to run
 
-    if(P_Points <= 2)	     //lvl up requirements   
+    if(P_Points <= 1)	     //lvl up requirements   
       P_level = P_level;
-    else if (P_Points <= 4)
+    else if (P_Points <= 2)
       P_level = 2;
-    else if (P_Points <= 8)
+    else if (P_Points <= 4)
       P_level = 3;
-    else if (P_Points <= 16)
+    else if (P_Points <= 8)
       P_level = 4;
-    else if (P_Points <= 32)
+    else if (P_Points <= 16)
       P_level = 5;
-    else if (P_Points <= 64)
+    else if (P_Points <= 32)
       P_level = 6;
-    else if (P_Points <= 128)
+    else if (P_Points <= 64)
       P_level = 7;
-    else if (P_Points <= 256)
+    else if (P_Points <= 128)
       P_level = 8;
     else
       P_level = 9;    
@@ -366,8 +315,9 @@ void vGameState()
     P_Damage = P_Damage;
     
     sprintf(PlayerL,"%d",P_level);
-    sprintf(PlayerD,"%d",P_Damage);
     sprintf(PlayerH,"%d",P_Health);
+    sprintf(PlayerD,"%d",P_Damage); 
+    sprintf(PlayerR,"%d",P_Run);  
     
     ppu_off();
     Monster_Output();
@@ -404,9 +354,6 @@ void vGameState()
     ppu_on_all();
     iCount=1;
   }
-  if (joy & PAD_LEFT) {attack = 1;}
-        	
-  if (joy & PAD_RIGHT) {attack = -1;};  
   if (joy & PAD_UP)
   {
     if(iDnum != 1)
@@ -441,13 +388,11 @@ void vGameState()
       ppu_on_all();
     }
   }
-  if(pad & PAD_START)
+  if(joy & PAD_START)
   {
     if(iDnum == 1)
-    {
-      ppu_off();   
+    {   
       vBattle();
-      ppu_on_all();
       iDnum = 0;
       iCount = 0;
     }
